@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import hypem
+from config import LOGGER
 
 from models.models import session
 
@@ -11,23 +12,28 @@ from models.models import QueuedTrack
 
 
 def run():
+    LOGGER.info('Getting music from HypeMachine...')
     results = hypem.get_popular(filter='lastweek', page=1)
-    tracks = []
-    for track in results.data:
-        date_posted = datetime.fromtimestamp(track.data['dateposted'])
-        hours_delta = (datetime.now() - date_posted).total_seconds() / 60 / 60
-        source_score = int(track.data['loved_count'] / hours_delta)
-        hypem_row = QueuedTrack(title=track.data['title'],
-                                 artist=track.data['artist'],
-                                 year=date_posted.year,
-                                 source='hypemachine',
-                                 source_score=source_score,
-                                 duration=track.data['time'])
+    LOGGER.info('Found {} tracks, merging to database...' .format(len(results.data)))
+    try:
+        for track in results.data:
+            date_posted = datetime.fromtimestamp(track.data['dateposted'])
+            hours_delta = (datetime.now() - date_posted).total_seconds() / 60 / 60
+            source_score = int(track.data['loved_count'] / hours_delta)
+            hypem_row = QueuedTrack(title=track.data['title'],
+                                    artist=track.data['artist'],
+                                    year=date_posted.year,
+                                    source='hypemachine',
+                                    source_score=source_score,
+                                    duration=track.data['time'])
 
-        session.merge(hypem_row)
+            session.merge(hypem_row)
+    except:
+        raise
 
-    session.commit()
-    session.close()
+    finally:
+        session.commit()
+        LOGGER.info('Merge completed.')
 
 
 if __name__ == '__main__':

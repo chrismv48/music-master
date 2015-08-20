@@ -1,5 +1,6 @@
 """Docstring goes here"""
 import sys
+from config import LOGGER
 import time
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
@@ -19,16 +20,16 @@ class MyHandler(PatternMatchingEventHandler):
         event.src_path
             path/to/observed/file
         """
-        print event.src_path
-        print event.event_type
+        LOGGER.info(event.src_path)
         track_path = event.dest_path if event.event_type == 'moved' else event.src_path
+        LOGGER.info('File change detected: {event_type}: {track_path}' .format(event_type=event.event_type,
+                                                                      track_path=track_path))
         file_change_trigger(track_path)
 
     def on_modified(self, event):
         self.process(event)
 
     def on_created(self, event):
-        #TODO: add additional processes for new files?
         self.process(event)
 
     def on_moved(self, event):

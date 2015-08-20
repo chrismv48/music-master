@@ -10,8 +10,8 @@ sys.setdefaultencoding("utf-8")
 
 from models.models import QueuedTrack, SavedTrack, session
 import youtube_dl
-from utils import create_or_modify_orm, calculate_md5
-from config import TRACK_DIRECTORY
+from utils import calculate_md5
+from config import TRACK_DIRECTORY, LOGGER
 
 
 def get_tracks_to_download():
@@ -28,9 +28,12 @@ def build_download_link(youtube_video_id):
 
 def run():
     #TODO: break this into smaller functions
-
+    LOGGER.info('Running music downloader...')
     tracks_to_download = get_tracks_to_download()
-
+    if not tracks_to_download:
+        LOGGER.info('No queued tracks found in database')
+        return
+    LOGGER.info('Found {} tracks from database to download...' .format(len(tracks_to_download)))
     options = {
         'format': 'bestaudio/best',
         'postprocessors': [{
@@ -42,24 +45,30 @@ def run():
 
     try:
         for queued_track in tracks_to_download:
-                track_filename = u'{} - {}'.format(queued_track.artist, queued_track.title)
-                options['outtmpl'] = u'{}/{}.%(ext)s'.format(TRACK_DIRECTORY, track_filename)
+                track_save_name = u'{} - {}'.format(queued_track.artist, queued_track.title)
+                LOGGER.info('Downloading track: {}' .format(track_save_name))
+                options['outtmpl'] = u'{}/{}.%(ext)s'.format(TRACK_DIRECTORY, track_save_name)
                 ydl = youtube_dl.YoutubeDL(options)
-                track_path = TRACK_DIRECTORY + track_filename + '.mp3'
+                track_path = TRACK_DIRECTORY + track_save_name + '.mp3'
                 download_link = build_download_link(queued_track.youtube_video_id)
+                # download the track
                 ydl.download([download_link])
-                track_model = create_or_modify_orm(queued_track.__dict__, SavedTrack())
-                track_model.path = track_path
-                track_model.md5 = calculate_md5(track_path)
-                track_model.fingerprint = fingerprint_file(track_path)
-                session.add(track_model)
+
+                #TODO: might need to create a holding directory so watchdog doesn't overwrite the below
+                saved_track = SavedTrack()
+                saved_track.from_dict(queued_track.as_dict())
+                saved_track.path = track_path
+                saved_track.md5 = calculate_md5(track_path)
+                saved_track.fingerprint = fingerprint_file(track_path)
+
+                session.add(saved_track)
                 session.delete(queued_track)
     except:
         raise
 
     finally:
         session.commit()
-        session.close()
+        LOGGER.info('Complete. Downloaded track data committed to database.')
 
 if __name__ == '__main__':
 

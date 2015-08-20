@@ -54,7 +54,7 @@ class EasyID3Patched(EasyID3):
         if not value:
             return u''
 
-        # I assume decimals need to be whole percents here (energy/valuealence), then unicode it cuz Mutagen
+        # I assume decimals need to be whole percents here (energy/valence), then unicode it cuz Mutagen
         elif isinstance(value, float):
             if value <= 1:
                 return unicode(int(value * 100))

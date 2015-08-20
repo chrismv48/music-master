@@ -1,38 +1,23 @@
-"""Loads all tracks and fills in missing ID3 attributes where possible and then merges into db"""
+"""Docstring goes here"""
+from datetime import timedelta, datetime
 
-import hashlib
-from utils import calculate_similarity, convert_floats
-from config import ECHONEST_API_KEY
-from pyechonest import track, artist, song, config
-import os
-import re
+from pyechonest import song, artist, config
 import time
-from library import library, merge_track_model_and_file
 
+from config import ECHONEST_API_KEY, LOGGER
+from models.models import session
+from utils import calculate_similarity
 
-def get_artist_terms(artist_name):
-    artist_results = artist.search(name=artist_name)
-    if not artist_results:
-        print "No artist found: {}".format(artist_name)
-        return None
-    if artist_results[0].name.lower() == artist_name.lower():
-        artist_terms = artist_results[0].terms
-        term_names = [term['name'] for term in artist_terms[:2]]
-
-        return term_names
-    else:
-        print "Artist name did not match top result: {} vs {}".format(artist_name, artist_results[0].name)
-        return None
+config.ECHO_NEST_API_KEY = ECHONEST_API_KEY
 
 
 def search_echonest_for_song(search_term, match_threshold=.75):
-    cleaned_search_term = re.sub(r'\W+', ' ', search_term).strip()
-    search_results = song.search(combined=cleaned_search_term)
+    search_results = song.search(combined=search_term)
     if search_results:
         score_results = []
         for search_result in search_results:
             matched_term = search_result.artist_name + ' ' + search_result.title
-            similarity_score = calculate_similarity(cleaned_search_term,
+            similarity_score = calculate_similarity(search_term,
                                                     matched_term,
                                                     match_threshold)
             score_results.append({'similarity_score': similarity_score,
@@ -41,72 +26,64 @@ def search_echonest_for_song(search_term, match_threshold=.75):
         top_score_result = max(score_results, key=lambda x: x['similarity_score'])
         if top_score_result['similarity_score'] >= match_threshold:
             return top_score_result['song_object']
-            # TODO: fix unicode errors (temp fix by deleting print stmts)
-            # else:
-            #     print u'''Similarity score of {similarity_score} below threshold of {match_threshold}\n
-            #      Search Term: {cleaned_search_term}\n
-            #      Matched Term: {matched_term}
-            #      '''.format(match_threshold=match_threshold,
-            #                 matched_term=top_score_result['song_object'].artist_name.encode('utf-8') + ' ' +
-            #                              top_score_result[
-            #                                  'song_object'].title.encode('utf-8'),
-            #                 cleaned_search_term=cleaned_search_term.encode('utf-8'),
-            #                 similarity_score=top_score_result['similarity_score'])
+
+
+def search_echonest_artist_terms(artist_name):
+    artist_results = artist.search(name=artist_name)
+    if not artist_results:
+        LOGGER.info('Artist not found in Echonest')
+        return None
+    if artist_results[0].name.lower() == artist_name.lower():
+        artist_terms = artist_results[0].terms
+        term_names = [term['name'] for term in artist_terms[:2]]
+
+        return term_names
     else:
+        LOGGER.info("Artist name did not match top result: {} vs {}".format(artist_name, artist_results[0].name))
         return None
 
-def run():
 
-    config.ECHO_NEST_API_KEY = ECHONEST_API_KEY
-    tracks_with_files = [track for track in library if track.file_info is not None]
-    # First, synchronize tracks
-    for track in tracks_with_files:
-        track.file_info.clear()
-        merge_track_model_and_file(track_file=track.file_info,
-                                   track_model=track.model)
+def enrich_track(track_model, do_commit=False):
+    # TODO: submit to be analyzed if not found
+    if track_model.last_searched_echonest and track_model.last_searched_echonest > (
+                track_model.last_searched_echonest - timedelta(days=7)):
+        LOGGER.info('Track already enriched, skipping enrichment process.')
+        return
+    LOGGER.info('Starting track enrichment...')
+    LOGGER.info('Searching Echonest for track using: {}'.format(track_model.search_phrase))
+    top_score_result = search_echonest_for_song(track_model.search_phrase)
+    if top_score_result:
+        LOGGER.info('Song found on Echonest: {} - {}'.format(top_score_result.artist_name,
+                                                       top_score_result.title))
+        audio_summary = top_score_result.get_audio_summary()
+        track_artist = top_score_result.artist_name.encode('utf-8')
+        track_title = top_score_result.title.encode('utf-8')
+        audio_summary['artist'] = track_artist
+        audio_summary['title'] = track_title
+        audio_summary = {k: v*100 if v < 1 else v for k, v in audio_summary.iteritems()} # SQLAlchemy converts
+        # values less than 1 to 0 before the validators can act.
+        track_model.from_dict(audio_summary)
+        time.sleep(2)
+    else:
+        LOGGER.info('Track not found in Echonest')
 
-    for track in tracks_with_files:
-        print track
-        # track.file_info.clear()
-        echonest_queried = False
-        audio_summary = None
-        track_data = {}
-        track_artist = track.file_info.get('artist')[0] if track.file_info.get('artist') else None
-        track_title = track.file_info.get('title')[0] if track.file_info.get('title') else None
-        track_filename = os.path.basename(track.file_info.filename)
-        if not all([track_artist, track_title, track.file_info.get('bpm'), track.file_info.get('discnumber'),
-                    track.file_info.get('tracknumber')]):
-            print 'Track missing info, searching Echonest'
-            top_score_result = search_echonest_for_song(track_filename[:-4])
-            if top_score_result:
-                print 'Song found in Echonest...'
-                audio_summary = top_score_result.get_audio_summary()
-                track_data.update(audio_summary)
-                track_artist = top_score_result.artist_name.encode('utf-8')
-                track_title = top_score_result.title.encode('utf-8')
-                track_data['artist'] = track_artist
-                track_data['title'] = track_title
-                echonest_queried = True
+    if not track_model.genres and track_model.album_artist:
+        LOGGER.info('Searching Echonest for genres using artist {}').format(track_model.album_artist)
+        genres = search_echonest_artist_terms(track_model.album_artist)
+        if genres:
+            track_model.genres = genres[0]
+            LOGGER.info('Genre found: {}' .format(genres[0]))
 
-        if 'genre' not in track.file_info.keys() and track_artist:
-            genres = get_artist_terms(track_artist)
-            if genres:
-                print 'Genre(s) found: {}'.format(genres)
-                track_data['genre'] = genres[0]
-            echonest_queried = True
-        if track_data:
-            merge_track_model_and_file(track_file=track.file_info,
-                                       track_model=track.model,
-                                       track_data=track_data
-                                       )
+        time.sleep(2)
 
-        print '=========================================='
-        print '\n'
+    track_model.last_searched_echonest = datetime.now()
 
-        if echonest_queried:
-            time.sleep(4)
-        else:
-            continue
+    if session.is_modified(track_model) and do_commit:
+        LOGGER.info('Merging track data to database')
+        session.merge(track_model)
+        session.commit()
 
-if __name__ == '__main__':
-    run()
+
+    if not do_commit:
+        return track_model
+
