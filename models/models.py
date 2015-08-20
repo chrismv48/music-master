@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker, validates, scoped_session
 
 from utils import clean_search_term
 
-engine = create_engine("postgresql+psycopg2://carmstrong@localhost/music_master", echo=True)
+engine = create_engine("postgresql+psycopg2://carmstrong@localhost/music_master")
 Session = sessionmaker(bind=engine, expire_on_commit=True)
 session = scoped_session(Session)
 Base = declarative_base()
@@ -46,7 +46,7 @@ class SavedTrack(TrackBase, SerializedModel, Base):
 
     @hybrid_property
     def search_phrase(self):
-        return clean_search_term(self.artist + ' ' + self.title if all([self.artist, self.title]) else
+        return clean_search_term(self.album_artist + ' ' + self.title if all([self.album_artist, self.title]) else
                                      self.filename)
 
 
@@ -68,22 +68,22 @@ class DeletedTrack(SerializedModel, TrackBase, Base):
 
     @hybrid_property
     def search_phrase(self):
-        return clean_search_term(self.artist + ' ' + self.title if all([self.artist, self.title]) else
+        return clean_search_term(self.album_artist + ' ' + self.title if all([self.album_artist, self.title]) else
                                      self.filename)
 
 
 
 
-@event.listens_for(SavedTrack, 'after_insert')
-@event.listens_for(SavedTrack, 'after_update')
-def after_insert_update_listener(mapper, connection, target):
-    from enricher_v3 import enrich_track # avoid circular dependency
-    print 'Model {} updated, let\'s update the file'.format(target)
-    target = enrich_track(target)
-    easyID3_track = EasyID3Patched(target.path)
-    easyID3_track.update_from_dict(target.as_dict())
-    if easyID3_track.is_modified:
-        easyID3_track.save()
-    print 'Finished'
+# @event.listens_for(SavedTrack, 'after_insert')
+# @event.listens_for(SavedTrack, 'after_update')
+# def after_insert_update_listener(mapper, connection, target):
+#     from enricher_v3 import enrich_track # avoid circular dependency
+#     print 'Model {} updated, let\'s update the file'.format(target)
+#     target = enrich_track(target)
+#     easyID3_track = EasyID3Patched(target.path)
+#     easyID3_track.update_from_dict(target.as_dict())
+#     if easyID3_track.is_modified:
+#         easyID3_track.save()
+#     print 'Finished'
 
 

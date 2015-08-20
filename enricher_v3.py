@@ -1,4 +1,6 @@
 """Docstring goes here"""
+from datetime import timedelta, datetime
+
 from pyechonest import song, artist, config
 import time
 
@@ -43,38 +45,40 @@ def search_echonest_artist_terms(artist_name):
 
 def enrich_track(track_model, do_commit=False):
     # TODO: submit to be analyzed if not found
-    echonest_queried = False
+    if track_model.last_searched_echonest and track_model.last_searched_echonest > (
+                track_model.last_searched_echonest - timedelta(days=7)):
+        return
     print 'Track {}'.format(track_model.search_phrase)
-    if not track_model.danceability:
-        print 'Searching echonest for track using: {}'.format(track_model.search_phrase)
-        top_score_result = search_echonest_for_song(track_model.search_phrase)
-        echonest_queried = True
-        if top_score_result:
-            print 'Song found on Echonest: {} - {}'.format(top_score_result.artist_name,
-                                                           top_score_result.title)
-            audio_summary = top_score_result.get_audio_summary()
-            track_artist = top_score_result.artist_name.encode('utf-8')
-            track_title = top_score_result.title.encode('utf-8')
-            audio_summary['artist'] = track_artist
-            audio_summary['title'] = track_title
-            audio_summary = {k: v*100 if v < 1 else v for k, v in audio_summary.iteritems()} # SQLAlchemy converts
-            # values less than 1 to 0 before the validators can act.
-            track_model.from_dict(audio_summary)
 
-    if not track_model.genres and track_model.artist:
-        print 'Searching echonest for genres using artist {}'.format(track_model.artist)
-        genres = search_echonest_artist_terms(track_model.artist)
-        echonest_queried = True
+    print 'Searching echonest for track using: {}'.format(track_model.search_phrase)
+    top_score_result = search_echonest_for_song(track_model.search_phrase)
+    if top_score_result:
+        print 'Song found on Echonest: {} - {}'.format(top_score_result.artist_name,
+                                                       top_score_result.title)
+        audio_summary = top_score_result.get_audio_summary()
+        track_artist = top_score_result.artist_name.encode('utf-8')
+        track_title = top_score_result.title.encode('utf-8')
+        audio_summary['artist'] = track_artist
+        audio_summary['title'] = track_title
+        audio_summary = {k: v*100 if v < 1 else v for k, v in audio_summary.iteritems()} # SQLAlchemy converts
+        # values less than 1 to 0 before the validators can act.
+        track_model.from_dict(audio_summary)
+        time.sleep(2)
+    if not track_model.genres and track_model.album_artist:
+        print 'Searching echonest for genres using artist {}'.format(track_model.album_artist)
+        genres = search_echonest_artist_terms(track_model.album_artist)
         if genres:
             track_model.genres = genres[0]
             print 'Genre found: {}'.format(genres[0])
+
+        time.sleep(2)
+
+    track_model.last_searched_echonest = datetime.now()
 
     if session.is_modified(track_model) and do_commit:
         session.merge(track_model)
         session.commit()
 
-    if echonest_queried:
-        time.sleep(3)
 
     if not do_commit:
         return track_model

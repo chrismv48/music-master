@@ -45,7 +45,7 @@ if __name__ == '__main__':
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
-    except Exception as e:
-        print e
+    except:
+        print "Unexpected error:", sys.exc_info()[0]
 
     observer.join()

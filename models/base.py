@@ -43,10 +43,14 @@ class SerializedModel(object):
         """Return JSON representation taken from dict representation."""
         return json.dumps(self.as_dict())
 
+def default_album_artist(context):
+    return context.current_parameters['artist']
+
 
 class TrackBase(object):
     title = Column(String(convert_unicode=True))
     artist = Column(String(convert_unicode=True))
+    album_artist = Column(String(convert_unicode=True), default=default_album_artist)
     album = Column(String(convert_unicode=True))
     source = Column(String)
     source_score = Column(Integer, default=None)
@@ -63,6 +67,8 @@ class TrackBase(object):
     year = Column(String(4))
     youtube_video_id = Column(String)
     youtube_video_title = Column(String(convert_unicode=True))
+    last_searched_acoustid = Column(DateTime, default=None)
+    last_searched_echonest = Column(DateTime, default=None)
     created_on = Column(DateTime, default=func.now())
     last_modified = Column(DateTime, default=func.now(),
                            onupdate=func.now())
@@ -87,7 +93,7 @@ class TrackBase(object):
 
     @hybrid_property
     def search_phrase(self):
-        return clean_search_term(self.artist + ' ' + self.title)
+        return clean_search_term(self.album_artist + ' ' + self.title)
 
     def __repr__(self):
         return u"<{}>({})>".format(self.__class__.__name__, self.search_phrase)

@@ -18,7 +18,8 @@ _to_model = {'artist': 'artist',
              'tracknumber': 'energy',
              'genre': 'genres',
              'acoustid_fingerprint': 'fingerprint',
-             'length': 'duration'}
+             'length': 'duration',
+             'albumartist': 'album_artist'}
 
 mapping = {'to_model': _to_model,
            'to_file': {v: k for k, v in _to_model.iteritems()}}

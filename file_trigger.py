@@ -1,8 +1,10 @@
 """Docstring goes here"""
 import acoustid
+from datetime import timedelta, datetime
 
 from EasyID3Patched import EasyID3Patched
 from config import ACOUST_ID_API_KEY
+from enricher_v3 import enrich_track
 from models.models import SavedTrack, session
 
 
@@ -18,24 +20,28 @@ def file_change_trigger(track_path):
     # load into mutagen
     # determine if fingerprint exists, if not create it
     easyID3_track = load_track_with_fingerprint(track_path)
+    saved_track = session.query(SavedTrack).filter(SavedTrack.fingerprint == easyID3_track.model_dict[
+    'fingerprint']).first()
+    if not saved_track:
+        saved_track = SavedTrack()
     # determine if needs musicbrainz data (id?)
-    if not easyID3_track.get('musicbrainz_releasetrackid'):
+    if not saved_track.last_searched_acoustid or saved_track.last_searched_acoustid < (
+            saved_track.last_searched_acoustid - timedelta(days=7)):
+        print 'Doing AcoustID lookup...'
         acoustid_data = acoustid_lookup(easyID3_track.model_dict['fingerprint'],
                                         int(easyID3_track.model_dict['duration']))
         easyID3_track.update_from_dict(acoustid_data)
+        saved_track.last_searched_acoustid = datetime.now()
 
-    saved_track = session.query(SavedTrack).filter(SavedTrack.fingerprint == easyID3_track.model_dict[
-        'fingerprint']).first()
-    if not saved_track:
-        saved_track = SavedTrack()
     saved_track.from_dict(easyID3_track.model_dict)
+    enrich_track(saved_track, do_commit=True)
+
     if session.is_modified(saved_track):
         session.merge(saved_track)
         session.commit()
+
     if easyID3_track.is_modified:
         easyID3_track.save()
-
-        # update/create model
 
 
 def acoustid_lookup(fingerprint, duration):
@@ -53,6 +59,7 @@ def acoustid_lookup(fingerprint, duration):
                 'title': recording_title,
                 'albumartist': album_artist,
                 'artist': artist,
+                'albumartist': album_artist,
                 'album': album}
 
     else:
