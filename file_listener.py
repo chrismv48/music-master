@@ -1,16 +1,19 @@
 """Docstring goes here"""
 import sys
-from config import LOGGER
+from config import LOGGER, TRACK_DIRECTORY
 import time
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
-from file_trigger import file_change_trigger
+from file_trigger import file_trigger
+
 reload(sys)
 sys.setdefaultencoding("utf-8")
 
-class MyHandler(PatternMatchingEventHandler):
-    patterns=["*.mp3"]
 
+class MyHandler(PatternMatchingEventHandler):
+    patterns = ['*.mp3']
+    ignore_patterns = ['*/holding*']
+    ignore_directories = True
     def process(self, event):
         """
         event.event_type
@@ -20,11 +23,13 @@ class MyHandler(PatternMatchingEventHandler):
         event.src_path
             path/to/observed/file
         """
-        LOGGER.info(event.src_path)
+        #TODO: add validation to only execute on audio files
         track_path = event.dest_path if event.event_type == 'moved' else event.src_path
-        LOGGER.info('File change detected: {event_type}: {track_path}' .format(event_type=event.event_type,
-                                                                      track_path=track_path))
-        file_change_trigger(track_path)
+        LOGGER.info('File change detected: {event_type}: {track_path}'.format(event_type=event.event_type,
+                                                                              track_path=track_path))
+        if '/Users/carmstrong/Projects/music_master/tracks/holding' in track_path:
+            LOGGER.info('Protected path, will make no changes!!')
+        file_trigger(track_path, event.event_type)
 
     def on_modified(self, event):
         self.process(event)
@@ -35,10 +40,10 @@ class MyHandler(PatternMatchingEventHandler):
     def on_moved(self, event):
         self.process(event)
 
+
 if __name__ == '__main__':
-    args = sys.argv[1:]
     observer = Observer()
-    observer.schedule(MyHandler(), path=args[0] if args else '.', recursive=True)
+    observer.schedule(MyHandler(), path=TRACK_DIRECTORY, recursive=True)
     observer.start()
 
     try:

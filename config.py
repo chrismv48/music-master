@@ -4,8 +4,8 @@ import logging
 
 logFormatter = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
 LOGGER = logging.getLogger('music_master')
-
-fileHandler = logging.FileHandler("music_master.log")
+LOG_DIRECTORY = os.getcwd()
+fileHandler = logging.FileHandler(LOG_DIRECTORY + "/music_master.log")
 fileHandler.setFormatter(logFormatter)
 LOGGER.addHandler(fileHandler)
 consoleHandler = logging.StreamHandler()

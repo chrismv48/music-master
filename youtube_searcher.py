@@ -29,7 +29,7 @@ def get_best_result(search_results, query):
 
 def run():
     tracks_to_search_for = session.query(QueuedTrack).filter(QueuedTrack.youtube_video_id == None).all()
-    tracks_to_search_for = [track.to_dict() for track in tracks_to_search_for]
+    tracks_to_search_for = [track.as_dict() for track in tracks_to_search_for]
 
     try:
         for track in tracks_to_search_for:

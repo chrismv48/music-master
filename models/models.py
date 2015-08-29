@@ -35,7 +35,7 @@ class SavedTrack(TrackBase, SerializedModel, Base):
 
     #track_hash = Column(String, primary_key=True, default=fingerprint_md5)
     fingerprint = Column(String, nullable=False, primary_key=True)
-    path = Column(String(convert_unicode=True), unique=True, nullable=False)
+    path = Column(String(convert_unicode=True), primary_key=True)
     md5 = Column(String, default=None)
     play_count = Column(Integer, default=0)
     rating = Column(Integer, default=None)
@@ -49,7 +49,8 @@ class SavedTrack(TrackBase, SerializedModel, Base):
         return clean_search_term(self.album_artist + ' ' + self.title if all([self.album_artist, self.title]) else
                                      self.filename)
 
-
+    def __repr__(self):
+        return u"<{}>({})>".format(self.__class__.__name__, self.search_phrase)
 
 
 class DeletedTrack(SerializedModel, TrackBase, Base):
@@ -57,7 +58,7 @@ class DeletedTrack(SerializedModel, TrackBase, Base):
 
     track_hash = Column(String, primary_key=True, default=fingerprint_md5)
     fingerprint = Column(String, nullable=False)
-    path = Column(String(convert_unicode=True), unique=True, nullable=False)
+    path = Column(String(convert_unicode=True), primary_key=True)
     md5 = Column(String, default=None)
     play_count = Column(Integer, default=0)
     rating = Column(Integer, default=None)
@@ -71,6 +72,8 @@ class DeletedTrack(SerializedModel, TrackBase, Base):
         return clean_search_term(self.album_artist + ' ' + self.title if all([self.album_artist, self.title]) else
                                      self.filename)
 
+    def __repr__(self):
+        return u"<{}>({})>".format(self.__class__.__name__, self.search_phrase)
 
 
 

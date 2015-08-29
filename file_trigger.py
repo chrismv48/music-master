@@ -1,11 +1,12 @@
 """Docstring goes here"""
 import acoustid
 from datetime import timedelta, datetime
+import time
 
 from EasyID3Patched import EasyID3Patched
 from config import ACOUST_ID_API_KEY, LOGGER
 from enricher import enrich_track
-from models.models import SavedTrack, session
+from models.models import SavedTrack, session, QueuedTrack
 
 
 def load_track_with_fingerprint(track_path):
@@ -18,16 +19,40 @@ def load_track_with_fingerprint(track_path):
     return easyID3_track
 
 
-def file_change_trigger(track_path):
-    easyID3_track = load_track_with_fingerprint(track_path)
-    saved_track = session.query(SavedTrack).filter(SavedTrack.fingerprint == easyID3_track.model_dict[
+def file_create_trigger(easyID3_track):
+    queued_track = session.query(QueuedTrack).filter(QueuedTrack.fingerprint == easyID3_track.model_dict[
     'fingerprint']).first()
-    if not saved_track:
+    if queued_track:
         saved_track = SavedTrack()
+        saved_track.from_dict(queued_track.as_dict)
+        saved_track.path = easyID3_track.filename
+        saved_track.fingerprint = easyID3_track.model_dict['fingerprint']
+        session.add(saved_track)
+        session.delete(queued_track)
+        session.commit()
+        LOGGER.info('Sucessfully transferred queued track data for new track')
+    else:
+        LOGGER.info('No queued track data found')
+        return
+
+def file_trigger(track_path, event_type='modified'):
+
+    if event_type == 'created':
+        time.sleep(2)   # we do this to let the downloader finish syncing the databases
+        #file_create_trigger(easyID3_track)
+
+    saved_track = session.query(SavedTrack).filter(SavedTrack.path == track_path).first()
+    if not saved_track:
         LOGGER.info('Track not found in database; creating...')
+        saved_track = SavedTrack()
+        easyID3_track = load_track_with_fingerprint(track_path)
+
     else:
         LOGGER.info('Track found in database:')
         LOGGER.info(saved_track)
+        easyID3_track = EasyID3Patched(track_path)
+        easyID3_track.update_from_dict(saved_track.as_dict())
+
     if not saved_track.last_searched_acoustid or saved_track.last_searched_acoustid < (
             saved_track.last_searched_acoustid - timedelta(days=7)):
         LOGGER.info('Doing AcoustID lookup for track data...')
@@ -37,7 +62,7 @@ def file_change_trigger(track_path):
         saved_track.last_searched_acoustid = datetime.now()
 
     saved_track.from_dict(easyID3_track.model_dict)
-    enrich_track(saved_track, do_commit=True)
+    saved_track = enrich_track(saved_track)
 
     if session.is_modified(saved_track):
         session.merge(saved_track)
@@ -49,7 +74,7 @@ def file_change_trigger(track_path):
 
 def acoustid_lookup(fingerprint, duration):
     results = acoustid.lookup(ACOUST_ID_API_KEY, fingerprint, duration, meta='recordings + releasegroups')
-    if results['results'] and results['results'][0].get('recordings'):
+    if results.get('results') and results['results'][0].get('recordings'):
         LOGGER.info('AcoustID result found!')
         recording = results['results'][0]['recordings'][0]
         recording_id = recording['id']

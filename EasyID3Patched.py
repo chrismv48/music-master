@@ -5,11 +5,15 @@ from config import _to_model
 
 def translate_file_value(value):
     # convert list values to actual value cuz Mutagen is special
-    if not value:
-        return None
 
-    if isinstance(value, list):
+    if isinstance(value, list) and value:
+
         value = value[0]
+
+        if not value:
+            return None
+    else:
+        return None
 
     if isinstance(value, unicode) or isinstance(value, str):
         try:

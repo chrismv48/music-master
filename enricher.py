@@ -43,12 +43,12 @@ def search_echonest_artist_terms(artist_name):
         return None
 
 
-def enrich_track(track_model, do_commit=False):
+def enrich_track(track_model):
     # TODO: submit to be analyzed if not found
     if track_model.last_searched_echonest and track_model.last_searched_echonest > (
                 track_model.last_searched_echonest - timedelta(days=7)):
         LOGGER.info('Track already enriched, skipping enrichment process.')
-        return
+        return track_model
     LOGGER.info('Starting track enrichment...')
     LOGGER.info('Searching Echonest for track using: {}'.format(track_model.search_phrase))
     top_score_result = search_echonest_for_song(track_model.search_phrase)
@@ -68,7 +68,8 @@ def enrich_track(track_model, do_commit=False):
         LOGGER.info('Track not found in Echonest')
 
     if not track_model.genres and track_model.album_artist:
-        LOGGER.info('Searching Echonest for genres using artist {}').format(track_model.album_artist)
+        LOGGER.info('Searching Echonest for genres using artist {}' .format(track_model.album_artist or
+                                                                            track_model.artist))
         genres = search_echonest_artist_terms(track_model.album_artist)
         if genres:
             track_model.genres = genres[0]
@@ -78,12 +79,14 @@ def enrich_track(track_model, do_commit=False):
 
     track_model.last_searched_echonest = datetime.now()
 
-    if session.is_modified(track_model) and do_commit:
-        LOGGER.info('Merging track data to database')
-        session.merge(track_model)
-        session.commit()
+    return track_model
 
-
-    if not do_commit:
-        return track_model
+    # if session.is_modified(track_model) and do_commit:
+    #     LOGGER.info('Merging track data to database')
+    #     session.merge(track_model)
+    #     session.commit()
+    #
+    #
+    # if not do_commit:
+    #     return track_model
 

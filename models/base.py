@@ -96,5 +96,5 @@ class TrackBase(object):
         return clean_search_term(self.album_artist + ' ' + self.title)
 
     def __repr__(self):
-        return u"<{}>({})>".format(self.__class__.__name__, self.search_phrase)
+        return u"<{}>({})>".format(self.__class__.__name__, self.artist + ' ' + self.title)
 
