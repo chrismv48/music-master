@@ -13,7 +13,7 @@ consoleHandler.setFormatter(logFormatter)
 LOGGER.addHandler(consoleHandler)
 LOGGER.setLevel('DEBUG')
 
-TRACK_DIRECTORY = '/Users/carmstrong/Projects/music_master/tracks/'
+TRACK_DIRECTORY = '/Users/carmstrong/Google Drive/Music/'
 ECHONEST_API_KEY = "JLNEEHJ7URFXQQZIK"
 ACOUST_ID_API_KEY = 'K0TgpFct'
 MUSICBRAINZ_USERNAME = 'chrismv48'
@@ -22,15 +22,15 @@ MUSICBRAINZ_USER_AGENT = ("Music Master", "0.1", "chris.r.armstrong@gmail.com")
 
 YOUTUBE_API_KEY = "AIzaSyAhfGE6RQxCr0q-p1_NhHYUrB0X4ixfIbs"
 
-_to_model = {'artist': 'artist',
-             'title': 'title',
-             'bpm': 'tempo',
-             'discnumber': 'valence',
-             'tracknumber': 'energy',
-             'genre': 'genres',
-             'acoustid_fingerprint': 'fingerprint',
-             'length': 'duration',
-             'albumartist': 'album_artist'}
+_to_file_mapping = {'artist': 'artist',
+                    'title': 'title',
+                    'tempo': 'bpm',
+                    'valence': 'discnumber',
+                    'energy': 'tracknumber',
+                    'genres': 'genre',
+                    'fingerprint': 'acoustid_fingerprint',
+                    'duration': 'length',
+                    'album_artist': 'albumartist'}
 
-mapping = {'to_model': _to_model,
-           'to_file': {v: k for k, v in _to_model.iteritems()}}
+mapping = {'to_file': _to_file_mapping,
+           'to_model': {v: k for k, v in _to_file_mapping.iteritems() if k not in ['valence', 'energy']}}

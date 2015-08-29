@@ -23,7 +23,6 @@ class MyHandler(PatternMatchingEventHandler):
         event.src_path
             path/to/observed/file
         """
-        #TODO: add validation to only execute on audio files
         track_path = event.dest_path if event.event_type == 'moved' else event.src_path
         LOGGER.info('File change detected: {event_type}: {track_path}'.format(event_type=event.event_type,
                                                                               track_path=track_path))
@@ -51,7 +50,5 @@ if __name__ == '__main__':
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
-    except:
-        print "Unexpected error:", sys.exc_info()[0]
 
     observer.join()

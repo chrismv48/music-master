@@ -36,7 +36,8 @@ def file_create_trigger(easyID3_track):
         return
 
 def file_trigger(track_path, event_type='modified'):
-
+    # TODO: add functionality where we save the last time trigger time in the file's metadata and use that to
+    # prevent infinite modification loops/over-checking the database
     if event_type == 'created':
         time.sleep(2)   # we do this to let the downloader finish syncing the databases
         #file_create_trigger(easyID3_track)
@@ -76,7 +77,8 @@ def acoustid_lookup(fingerprint, duration):
     results = acoustid.lookup(ACOUST_ID_API_KEY, fingerprint, duration, meta='recordings + releasegroups')
     if results.get('results') and results['results'][0].get('recordings'):
         LOGGER.info('AcoustID result found!')
-        recording = results['results'][0]['recordings'][0]
+        recordings = results['results'][0]['recordings']
+        recording = max(recordings, key=lambda x: len(x.keys()))
         recording_id = recording['id']
         recording_artists = recording['artists']
         recording_title = recording['title']

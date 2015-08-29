@@ -54,7 +54,8 @@ class TrackBase(object):
     album = Column(String(convert_unicode=True))
     source = Column(String)
     source_score = Column(Integer, default=None)
-    musicbrainz_releasetrackid = Column(String, unique=True)
+    musicbrainz_releasetrackid = Column(String)  # this should be set to unique, but merge doesn't seem to work when
+    # unique keys are used
     danceability = Column(Integer, default=None)
     energy = Column(Integer, default=None)
     valence = Column(Integer, default=None)

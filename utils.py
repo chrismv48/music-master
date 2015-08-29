@@ -4,6 +4,8 @@ from datetime import datetime
 from mutagen.easyid3 import EasyID3
 from difflib import SequenceMatcher
 import re
+from EasyID3Patched import EasyID3Patched
+from config import TRACK_DIRECTORY
 
 
 def get_track_paths(dir):
@@ -47,3 +49,9 @@ def calculate_md5(file_path):
 
 def clean_search_term(search_term):
     return re.sub(r'\W+', ' ', search_term).strip()
+
+def force_sync(library_directory=TRACK_DIRECTORY):
+    track_paths = get_track_paths(library_directory)
+    for track_path in track_paths:
+        audio = EasyID3Patched(track_path)
+        audio.save()
