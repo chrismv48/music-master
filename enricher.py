@@ -10,6 +10,7 @@ from utils import calculate_similarity
 
 config.ECHO_NEST_API_KEY = ECHONEST_API_KEY
 
+# TODO: this might be overwriting valid id3 data?
 
 def search_echonest_for_song(search_term, match_threshold=.75):
     search_results = song.search(combined=search_term)
@@ -49,7 +50,6 @@ def enrich_track(track_model):
                 track_model.last_searched_echonest - timedelta(days=7)):
         LOGGER.info('Track already enriched, skipping enrichment process.')
         return track_model
-    LOGGER.info('Starting track enrichment...')
     LOGGER.info('Searching Echonest for track using: {}'.format(track_model.search_phrase))
     top_score_result = search_echonest_for_song(track_model.search_phrase)
     if top_score_result:
@@ -80,13 +80,4 @@ def enrich_track(track_model):
     track_model.last_searched_echonest = datetime.now()
 
     return track_model
-
-    # if session.is_modified(track_model) and do_commit:
-    #     LOGGER.info('Merging track data to database')
-    #     session.merge(track_model)
-    #     session.commit()
-    #
-    #
-    # if not do_commit:
-    #     return track_model
 

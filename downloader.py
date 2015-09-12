@@ -74,7 +74,7 @@ def run():
         saved_track.fingerprint = fingerprint_duration[1]
         saved_track.duration = fingerprint_duration[0]
 
-        session.add(saved_track)
+        session.merge(saved_track)
         session.delete(queued_track)
         session.commit()
         os.rename(holding_track_path, final_track_path)

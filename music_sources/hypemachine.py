@@ -18,16 +18,10 @@ def run():
     try:
         for track in results.data:
             date_posted = datetime.fromtimestamp(track.data['dateposted'])
-            print track.data['title']
-            print date_posted
-            print track.data['dateposted']
-            print track.data['postid']
             #TODO: this is unpredictable because there are random postid's returned with different loved and
             # dateposted values
             hours_delta = (datetime.now() - date_posted).total_seconds() / 60 / 60
-            print hours_delta
             source_score = int(track.data['loved_count'] / hours_delta)
-            print source_score
             hypem_row = QueuedTrack(title=track.data['title'],
                                     artist=track.data['artist'],
                                     year=date_posted.year,
