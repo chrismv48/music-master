@@ -46,7 +46,7 @@ class SavedTrack(TrackBase, SerializedModel, Base):
 
     @hybrid_property
     def search_phrase(self):
-        return clean_search_term(self.album_artist + ' ' + self.title if all([self.album_artist, self.title]) else
+        return clean_search_term(self.album_artist + ' ' + str(self.title) if all([self.album_artist, self.title]) else
                                      self.filename)
 
     def __repr__(self):
