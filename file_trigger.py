@@ -4,9 +4,10 @@ from datetime import timedelta, datetime
 import time
 
 from EasyID3Patched import EasyID3Patched
-from config import ACOUST_ID_API_KEY, LOGGER
+from config import ACOUST_ID_API_KEY, LOGGER, TRACK_DIRECTORY
 from enricher import enrich_track
 from models.models import SavedTrack, session, QueuedTrack
+from utils import get_track_paths
 
 
 def load_track_with_fingerprint(track_path):
@@ -17,6 +18,11 @@ def load_track_with_fingerprint(track_path):
         duration, fingerprint = acoustid.fingerprint_file(track_path, 30)
         easyID3_track['length'], easyID3_track['acoustid_fingerprint'] = unicode(duration), unicode(fingerprint)
     return easyID3_track
+
+def force_sync(library_directory=TRACK_DIRECTORY):
+    track_paths = get_track_paths(library_directory)
+    for track_path in track_paths:
+        sync_file(track_path)
 
 
 def file_create_trigger(easyID3_track):
@@ -35,9 +41,8 @@ def file_create_trigger(easyID3_track):
         LOGGER.info('No queued track data found')
         return
 
-def file_trigger(track_path, event_type='modified'):
-    # TODO: add functionality where we save the last time trigger time in the file's metadata and use that to
-    # prevent infinite modification loops/over-checking the database
+def sync_file(track_path, event_type='modified'):
+
     if event_type == 'created':
         time.sleep(2)   # we do this to let the downloader finish syncing the databases
         #file_create_trigger(easyID3_track)

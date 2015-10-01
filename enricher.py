@@ -36,9 +36,10 @@ def search_echonest_artist_terms(artist_name):
         return None
     if artist_results[0].name.lower() == artist_name.lower():
         artist_terms = artist_results[0].terms
-        term_names = [term['name'] for term in artist_terms[:2]]
-
-        return term_names
+        if artist_terms:
+            return max(artist_terms, key=lambda x: x['weight'] * x['frequency'])['name']
+        else:
+            return None
     else:
         LOGGER.info("Artist name did not match top result: {} vs {}".format(artist_name, artist_results[0].name))
         return None
@@ -66,14 +67,13 @@ def enrich_track(track_model):
         time.sleep(2)
     else:
         LOGGER.info('Track not found in Echonest')
-
-    if not track_model.genres and track_model.album_artist:
+    if not track_model.genres and (track_model.album_artist or track_model.artist):
         LOGGER.info('Searching Echonest for genres using artist {}' .format(track_model.album_artist or
                                                                             track_model.artist))
-        genres = search_echonest_artist_terms(track_model.album_artist)
-        if genres:
-            track_model.genres = genres[0]
-            LOGGER.info('Genre found: {}' .format(genres[0]))
+        top_term = search_echonest_artist_terms(track_model.album_artist or track_model.artist)
+        if top_term:
+            track_model.genres = top_term.title()
+            LOGGER.info('Genre found: {}' .format(top_term))
 
         time.sleep(2)
 

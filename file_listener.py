@@ -4,7 +4,7 @@ from config import LOGGER, TRACK_DIRECTORY
 import time
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
-from file_trigger import file_trigger
+from file_trigger import sync_file
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
@@ -28,7 +28,7 @@ class MyHandler(PatternMatchingEventHandler):
                                                                               track_path=track_path))
         if '/Users/carmstrong/Projects/music_master/tracks/holding' in track_path:
             LOGGER.info('Protected path, will make no changes!!')
-        file_trigger(track_path, event.event_type)
+        sync_file(track_path, event.event_type)
 
     def on_modified(self, event):
         self.process(event)

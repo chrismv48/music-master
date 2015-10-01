@@ -53,11 +53,6 @@ def clean_search_term(search_term):
     return re.sub(r'\W+', ' ', search_term).strip()
 
 
-def force_sync(library_directory=TRACK_DIRECTORY):
-    track_paths = get_track_paths(library_directory)
-    for track_path in track_paths:
-        audio = EasyID3Patched(track_path)
-        audio.save()
 
 
 def is_file_listener_running(module_name='file_listener.py'):
@@ -71,3 +66,11 @@ def is_file_listener_running(module_name='file_listener.py'):
 def run_file_listener():
     if not is_file_listener_running():
         psutil.Popen('/Users/carmstrong/Envs/music-master/bin/python /Users/carmstrong/Projects/music_master/file_listener.py', shell=True)
+
+def set_id3_tag(id3_tag, value, library_directory=TRACK_DIRECTORY):
+    track_paths = get_track_paths(library_directory)
+    for track_path in track_paths:
+        audio_file = EasyID3Patched(track_path)
+        if audio_file.get(id3_tag):
+            audio_file[id3_tag] = value
+            audio_file.save()
