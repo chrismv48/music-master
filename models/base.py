@@ -6,9 +6,9 @@ import datetime
 
 # Third-party imports
 import arrow
-from sqlalchemy import Column, String, Integer, DateTime, func
+from sqlalchemy import Column, String, Integer, DateTime, func, ForeignKey
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import validates, relationship, backref
 from utils import clean_search_term
 
 
@@ -65,6 +65,7 @@ class TrackBase(object):
     acousticness = Column(Integer, default=None)
     speechiness = Column(Integer, default=None)
     genres = Column(String)
+    meta_genre = Column(String)
     year = Column(String(4))
     youtube_video_id = Column(String)
     youtube_video_title = Column(String(convert_unicode=True))

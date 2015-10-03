@@ -4,7 +4,7 @@ from config import LOGGER, TRACK_DIRECTORY
 import time
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
-from file_trigger import sync_file
+from library import sync_file
 
 reload(sys)
 sys.setdefaultencoding("utf-8")

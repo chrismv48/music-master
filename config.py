@@ -34,7 +34,9 @@ _to_file_mapping = {'artist': 'artist',
                     'genres': 'genre',
                     'fingerprint': 'acoustid_fingerprint',
                     'duration': 'length',
-                    'album_artist': 'albumartist'}
+                    'album_artist': 'albumartist',
+                    'source': 'composer',
+                    'meta_genre': 'grouping'}
 
 mapping = {'to_file': _to_file_mapping,
            'to_model': {v: k for k, v in _to_file_mapping.iteritems() if k not in ['valence', 'energy']}}

@@ -2,17 +2,32 @@
 import sys
 from mutagen.easyid3 import EasyID3
 from config import mapping
+import mutagen.id3
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
 
 
+def comment_get(id3, key):
+    return id3["COMM"].text
+
+
+def comment_set(id3, key, value):
+    return id3.add(mutagen.id3.COMM(encoding=3, text=value, lang=u'eng', desc=u'desc'))
+
+
+def comment_delete(id3, key):
+    del (id3["COMM"])
+
 
 class EasyID3Patched(EasyID3):
-
     def __init__(self, filename):
         super(EasyID3Patched, self).__init__(filename)
-        self._unmodified_data = {k:v for k, v in self.iteritems()}
+        self._unmodified_data = {k: v for k, v in self.iteritems()}
+
+        self.RegisterKey("comments", comment_get, comment_set, comment_delete)
+        self.RegisterTextKey("grouping", "TIT1")
+        self.RegisterTextKey("composer", "TCOM")
 
     @property
     def model_dict(self):
@@ -22,7 +37,7 @@ class EasyID3Patched(EasyID3):
 
     @property
     def is_modified(self):
-        return self._unmodified_data != {k:v for k, v in self.iteritems()}
+        return self._unmodified_data != {k: v for k, v in self.iteritems()}
 
     def update_from_dict(self, input_dict):
         valid_keys = self.valid_keys.keys()
@@ -47,7 +62,7 @@ class EasyID3Patched(EasyID3):
             return unicode(value)
 
     def _translate_file_value(self, value):
-    # convert list values to actual value cuz Mutagen is special
+        # convert list values to actual value cuz Mutagen is special
 
         if isinstance(value, list) and value:
 

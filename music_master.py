@@ -2,19 +2,20 @@
 import argparse
 
 from music_sources import hypemachine, reddit
-from utils import run_file_listener, force_sync
+from library import sync_library, rename_library
 import youtube_searcher, downloader
 
 def main(arguments):
-
-    run_file_listener()
-    force_sync()
 
     if arguments.get_music:
         hypemachine.run()
         reddit.run()
         youtube_searcher.run()
         downloader.run()
+
+    rename_library()
+    sync_library()
+
 
 if __name__ == '__main__':
 

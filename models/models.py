@@ -4,10 +4,10 @@ import os
 from mutagen.easyid3 import EasyID3
 from EasyID3Patched import EasyID3Patched
 from base import SerializedModel, TrackBase
-from sqlalchemy import Column, String, Integer, DateTime, Date, Boolean, event, create_engine, func, Float
+from sqlalchemy import Column, String, Integer, DateTime, Date, Boolean, event, create_engine, func, Float, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import sessionmaker, validates, scoped_session
+from sqlalchemy.orm import sessionmaker, validates, scoped_session, relationship, backref
 
 from utils import clean_search_term
 
@@ -33,9 +33,8 @@ class QueuedTrack(SerializedModel, TrackBase, Base):
 class SavedTrack(TrackBase, SerializedModel, Base):
     __tablename__ = 'saved_track'
 
-    #track_hash = Column(String, primary_key=True, default=fingerprint_md5)
     fingerprint = Column(String, nullable=False, primary_key=True)
-    path = Column(String(convert_unicode=True), primary_key=True)
+    path = Column(String(convert_unicode=True), unique=True)
     md5 = Column(String, default=None)
     play_count = Column(Integer, default=0)
     rating = Column(Integer, default=None)
@@ -75,7 +74,11 @@ class DeletedTrack(SerializedModel, TrackBase, Base):
     def __repr__(self):
         return u"<{}>({})>".format(self.__class__.__name__, self.search_phrase)
 
+class Genre(SerializedModel, Base):
+    __tablename__ = 'genre'
 
+    meta_genre = Column(String, primary_key=True)
+    genre = Column(String, primary_key=True)
 
 # @event.listens_for(SavedTrack, 'after_insert')
 # @event.listens_for(SavedTrack, 'after_update')
