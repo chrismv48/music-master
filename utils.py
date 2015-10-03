@@ -53,8 +53,6 @@ def clean_search_term(search_term):
     return re.sub(r'\W+', ' ', search_term).strip()
 
 
-
-
 def is_file_listener_running(module_name='file_listener.py'):
     for pid in psutil.pids():
         process = psutil.Process(pid)
@@ -63,9 +61,13 @@ def is_file_listener_running(module_name='file_listener.py'):
 
     return False
 
+
 def run_file_listener():
     if not is_file_listener_running():
-        psutil.Popen('/Users/carmstrong/Envs/music-master/bin/python /Users/carmstrong/Projects/music_master/file_listener.py', shell=True)
+        psutil.Popen(
+            '/Users/carmstrong/Envs/music-master/bin/python /Users/carmstrong/Projects/music_master/file_listener.py',
+            shell=True)
+
 
 def set_id3_tag(id3_tag, value, library_directory=TRACK_DIRECTORY):
     track_paths = get_track_paths(library_directory)
@@ -74,3 +76,54 @@ def set_id3_tag(id3_tag, value, library_directory=TRACK_DIRECTORY):
         if audio_file.get(id3_tag):
             audio_file[id3_tag] = value
             audio_file.save()
+
+
+def rename_file_to_pattern(file_path, directory_pattern='{album_artist}/{album}/', file_pattern='{artist} - {title}'):
+    current_filename = os.path.basename(file_path)
+    file_extension = os.path.splitext(file_path)[1]
+
+    mp3 = EasyID3Patched(file_path)
+
+    artist = mp3.get('artist')[0] if 'artist' in mp3.keys() else ''
+    album_artist = mp3.get('albumartist')[0] if 'albumartist' in mp3.keys() else ''
+    title = mp3.get('title')[0] if 'title' in mp3.keys() else ''
+    album = mp3.get('album')[0] if 'album' in mp3.keys() else ''
+
+    # use artist/album_artist if the other is blank
+    artist = artist or album_artist
+    album_artist = album_artist or artist
+
+    if all([artist, title]):
+        new_filename = str(file_pattern + file_extension).format(artist=artist.strip(),
+                                                                 title=title.strip())
+        new_directory = str(TRACK_DIRECTORY + directory_pattern).format(artist=artist.strip(),
+                                                                        album_artist=album_artist.strip(),
+                                                                        title=title.strip(),
+                                                                        album=album.strip())
+        new_path = new_directory + new_filename
+        new_path = re.sub(r'/{2,}', '/', new_path)
+    else:
+        new_path = TRACK_DIRECTORY + current_filename
+
+    return new_path
+
+
+def rename_library():
+    track_paths = get_track_paths(TRACK_DIRECTORY)
+
+    for track_path in track_paths:
+        new_path = rename_file_to_pattern(track_path)
+        if not os.path.exists(os.path.dirname(new_path)):
+            os.makedirs(os.path.dirname(new_path))
+        os.rename(track_path, rename_file_to_pattern(track_path))
+
+    delete_empty_directories()
+
+
+def delete_empty_directories(root_directory=TRACK_DIRECTORY):
+    for directory, subdirs, filenames in os.walk(root_directory, topdown=False):
+        safe_filenames = [filename for filename in filenames if filename != '.DS_Store']
+        if not safe_filenames and not subdirs:
+            for file in filenames:
+                os.remove(os.path.join(directory, file))
+            os.rmdir(directory)

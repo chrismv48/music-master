@@ -25,21 +25,21 @@ def force_sync(library_directory=TRACK_DIRECTORY):
         sync_file(track_path)
 
 
-def file_create_trigger(easyID3_track):
-    queued_track = session.query(QueuedTrack).filter(QueuedTrack.fingerprint == easyID3_track.model_dict[
-    'fingerprint']).first()
-    if queued_track:
-        saved_track = SavedTrack()
-        saved_track.from_dict(queued_track.as_dict)
-        saved_track.path = easyID3_track.filename
-        saved_track.fingerprint = easyID3_track.model_dict['fingerprint']
-        session.add(saved_track)
-        session.delete(queued_track)
-        session.commit()
-        LOGGER.info('Sucessfully transferred queued track data for new track')
-    else:
-        LOGGER.info('No queued track data found')
-        return
+# def file_create_trigger(easyID3_track):
+#     queued_track = session.query(QueuedTrack).filter(QueuedTrack.fingerprint == easyID3_track.model_dict[
+#     'fingerprint']).first()
+#     if queued_track:
+#         saved_track = SavedTrack()
+#         saved_track.from_dict(queued_track.as_dict)
+#         saved_track.path = easyID3_track.filename
+#         saved_track.fingerprint = easyID3_track.model_dict['fingerprint']
+#         session.add(saved_track)
+#         session.delete(queued_track)
+#         session.commit()
+#         LOGGER.info('Sucessfully transferred queued track data for new track')
+#     else:
+#         LOGGER.info('No queued track data found')
+#         return
 
 def sync_file(track_path, event_type='modified'):
 
@@ -69,6 +69,7 @@ def sync_file(track_path, event_type='modified'):
 
     saved_track.from_dict(easyID3_track.model_dict)
     saved_track = enrich_track(saved_track)
+    easyID3_track.update_from_dict(saved_track.as_dict())
 
     if session.is_modified(saved_track):
         session.merge(saved_track)
