@@ -37,7 +37,9 @@ class SavedTrack(TrackBase, SerializedModel, Base):
     path = Column(String(convert_unicode=True), unique=True)
     md5 = Column(String, default=None)
     play_count = Column(Integer, default=0)
+    skip_count = Column(Integer, default=0)
     rating = Column(Integer, default=None)
+    loved = Column(Boolean, default=None)
 
     @hybrid_property
     def filename(self):
@@ -60,7 +62,9 @@ class DeletedTrack(SerializedModel, TrackBase, Base):
     path = Column(String(convert_unicode=True), primary_key=True)
     md5 = Column(String, default=None)
     play_count = Column(Integer, default=0)
+    skip_count = Column(Integer, default=0)
     rating = Column(Integer, default=None)
+    loved = Column(Boolean, default=None)
 
     @hybrid_property
     def filename(self):

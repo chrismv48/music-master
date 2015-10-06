@@ -1,5 +1,7 @@
 """Docstring goes here"""
 from datetime import timedelta, datetime
+import urllib
+from lxml import etree
 import os
 import re
 import time
@@ -54,7 +56,6 @@ def sync_file(track_path, event_type='modified'):
         easyID3_track.update_from_dict(acoustid_data)
         saved_track.last_searched_acoustid = datetime.now()
 
-
     saved_track.from_dict(easyID3_track.model_dict)
     saved_track = enrich_track(saved_track)
     saved_track.meta_genre = match_meta_genre(saved_track.genres)
@@ -66,7 +67,6 @@ def sync_file(track_path, event_type='modified'):
 
     if easyID3_track.is_modified:
         easyID3_track.save()
-
 
 
 def rename_file_to_pattern(file_path, directory_pattern='{album_artist}/{album}/', file_pattern='{artist} - {title}'):
@@ -147,4 +147,51 @@ def match_meta_genre(genre):
             return genre_mapping['meta_genre'].title()
 
 
-sync_library()
+# TODO: create function to handle deleted tracks
+
+def get_itunes_track_data(itunes_key):
+    with open('/Users/carmstrong/Music/iTunes/iTunes Music Library.xml', 'rb') as itunes_xml:
+        tree = etree.parse(itunes_xml)
+
+    queried_tracks = tree.xpath("/plist/dict/dict/dict/key[text()='{}']".format(itunes_key))
+
+    results = []
+
+    for queried_track in queried_tracks:
+
+        if itunes_key == 'Loved':
+            key_value = True
+        else:
+            key_value = queried_track.getnext().text
+        filename = queried_track.xpath("../key[text()='Location']")[0].getnext().text
+
+        results.append({itunes_key: key_value,
+                        "file_path": urllib.unquote(filename[7:])})
+
+    return results
+
+
+def update_db_for_itunes_data(itunes_data, db_field):
+    db_tracks = session.query(SavedTrack).filter(SavedTrack.path.in_([i['file_path'] for i in itunes_data])).all()
+    itunes_key = [key for key in itunes_data[0].keys() if key != 'file_path'][0]    # gross
+    for db_track in db_tracks:
+        db_track.__setattr__(db_field, [track[itunes_key] for track in itunes_data if track['file_path'] ==
+                                        db_track.path][0])
+        session.add(db_track)
+
+    session.commit()
+
+def update_play_skip_rating_data():
+    skipped_tracks = get_itunes_track_data('Skip Count')
+    update_db_for_itunes_data(skipped_tracks, 'skip_count')
+
+    played_tracks = get_itunes_track_data('Play Count')
+    update_db_for_itunes_data(played_tracks, 'play_count')
+
+    loved_tracks = get_itunes_track_data('Loved')
+    update_db_for_itunes_data(loved_tracks, 'loved')
+
+
+update_play_skip_rating_data()
+# sync_library()
+# rename_library()

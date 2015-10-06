@@ -61,7 +61,7 @@ def enrich_track(track_model):
         track_title = top_score_result.title.encode('utf-8')
         audio_summary['artist'] = track_artist
         audio_summary['title'] = track_title
-        audio_summary = {k: v * 100 if v < 1 else v for k, v in audio_summary.iteritems()}  # SQLAlchemy converts
+        audio_summary = {k: v * 100 if v and v < 1 else v for k, v in audio_summary.iteritems()}  # SQLAlchemy converts
         # values less than 1 to 0 before the validators can act.
         track_model.from_dict(audio_summary)
         time.sleep(2)
@@ -93,7 +93,7 @@ def acoustid_lookup(fingerprint, duration):
         recording_title = recording['title']
         album_artist = recording_artists[0]['name']
         artist = ''.join([artist['name'] + artist.get('joinphrase', '') for artist in recording_artists])
-        album = recording['releasegroups'][0]['title']
+        album = recording['releasegroups'][0]['title']  # TODO: the results of this are often inconsistent
 
         return {'musicbrainz_releasetrackid': recording_id,
                 'title': recording_title,
