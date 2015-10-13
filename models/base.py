@@ -26,17 +26,19 @@ class SerializedModel(object):
         value = {}
         for column in self.__table__.columns:
             attribute = getattr(self, column.name)
-            if isinstance(attribute, datetime.datetime):
-                attribute = arrow.get(attribute, 'US/Eastern').isoformat()
             value[column.name] = attribute
         return value
 
-    def from_dict(self, attributes):
+    def update_from_dict(self, attributes):
         """Update the current instance based on attribute->value items in
         *attributes*."""
+        self.modified = []
         for attribute in attributes:
             if attribute in self.table_fields:
-                setattr(self, attribute, attributes[attribute])
+                if not getattr(self, attribute) == attributes[attribute]:
+                    self.modified.append([{"new": {attribute: attributes[attribute]},
+                                         "old": {attribute: getattr(self, attribute)}}])
+                    setattr(self, attribute, attributes[attribute])
         return self
 
     def as_json(self):

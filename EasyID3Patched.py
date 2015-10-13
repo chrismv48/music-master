@@ -23,11 +23,11 @@ def comment_delete(id3, key):
 class EasyID3Patched(EasyID3):
     def __init__(self, filename):
         super(EasyID3Patched, self).__init__(filename)
-        self._unmodified_data = {k: v for k, v in self.iteritems()}
-
         self.RegisterKey("comments", comment_get, comment_set, comment_delete)
         self.RegisterTextKey("grouping", "TIT1")
         self.RegisterTextKey("composer", "TCOM")
+
+        self._unmodified_data = {k: v for k, v in self.iteritems()}
 
     @property
     def model_dict(self):

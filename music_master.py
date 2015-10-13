@@ -2,7 +2,7 @@
 import argparse
 
 from music_sources import hypemachine, reddit
-from library import sync_library, rename_library
+from library_v2 import sync_library
 import youtube_searcher, downloader
 
 def main(arguments):
@@ -13,7 +13,6 @@ def main(arguments):
         youtube_searcher.run()
         downloader.run()
 
-    rename_library()
     sync_library()
 
 

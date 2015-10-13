@@ -192,6 +192,6 @@ def update_play_skip_rating_data():
     update_db_for_itunes_data(loved_tracks, 'loved')
 
 
-update_play_skip_rating_data()
+#update_play_skip_rating_data()
 # sync_library()
 # rename_library()

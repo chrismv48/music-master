@@ -63,11 +63,14 @@ def run():
         ydl = youtube_dl.YoutubeDL(options)
         download_link = build_download_link(queued_track.youtube_video_id)
         # download the track
-        ydl.download([download_link])
-
+        try:
+            ydl.download([download_link])
+        except youtube_dl.utils.DownloadError as e:
+            LOGGER.warning('youtube-dl encountered an error: {}' .format(e.message))
+            continue
         # TODO: might need to create a holding directory so watchdog doesn't overwrite the below
         saved_track = SavedTrack()
-        saved_track.from_dict(queued_track.as_dict())
+        saved_track.update_from_dict(queued_track.as_dict())
         saved_track.path = final_track_path
         saved_track.md5 = calculate_md5(holding_track_path)
         fingerprint_duration = fingerprint_file(holding_track_path, 30)

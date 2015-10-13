@@ -44,15 +44,15 @@ def search_echonest_artist_terms(artist_name):
         return None
 
 
-def enrich_track(track_model):
+def enrich_track(track_data):
     # TODO: submit to be analyzed if not found
-    if track_model.last_searched_echonest and track_model.last_searched_echonest > (
-                track_model.last_searched_echonest - timedelta(days=7)):
+    if track_data.last_searched_echonest and track_data.last_searched_echonest > (
+                track_data.last_searched_echonest - timedelta(days=7)):
         LOGGER.info('Track already enriched, skipping enrichment process.')
-        return track_model
+        return track_data
 
-    LOGGER.info('Searching Echonest for track using: {}'.format(track_model.search_phrase))
-    top_score_result = search_echonest_for_song(track_model.search_phrase)
+    LOGGER.info('Searching Echonest for track using: {}'.format(track_data.search_phrase))
+    top_score_result = search_echonest_for_song(track_data.search_phrase)
     if top_score_result:
         LOGGER.info('Song found on Echonest: {} - {}'.format(top_score_result.artist_name,
                                                              top_score_result.title))
@@ -63,23 +63,23 @@ def enrich_track(track_model):
         audio_summary['title'] = track_title
         audio_summary = {k: v * 100 if v and v < 1 else v for k, v in audio_summary.iteritems()}  # SQLAlchemy converts
         # values less than 1 to 0 before the validators can act.
-        track_model.from_dict(audio_summary)
+        track_data.from_dict(audio_summary)
         time.sleep(2)
     else:
         LOGGER.info('Track not found in Echonest')
-    if not track_model.genres and (track_model.album_artist or track_model.artist):
-        LOGGER.info('Searching Echonest for genres using artist {}'.format(track_model.album_artist or
-                                                                           track_model.artist))
-        top_term = search_echonest_artist_terms(track_model.album_artist or track_model.artist)
+    if not track_data.genres and (track_data.album_artist or track_data.artist):
+        LOGGER.info('Searching Echonest for genres using artist {}'.format(track_data.album_artist or
+                                                                           track_data.artist))
+        top_term = search_echonest_artist_terms(track_data.album_artist or track_data.artist)
         if top_term:
-            track_model.genres = top_term.title()
+            track_data.genres = top_term.title()
             LOGGER.info('Genre found: {}'.format(top_term))
 
         time.sleep(2)
 
-    track_model.last_searched_echonest = datetime.now()
+    track_data.last_searched_echonest = datetime.now()
 
-    return track_model
+    return track_data
 
 
 def acoustid_lookup(fingerprint, duration):
