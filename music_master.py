@@ -2,11 +2,11 @@
 import argparse
 
 from music_sources import hypemachine, reddit
-from library_v2 import sync_library
+from library import sync_library
 import youtube_searcher, downloader
 
-def main(arguments):
 
+def main(arguments):
     if arguments.get_music:
         hypemachine.run()
         reddit.run()
@@ -17,7 +17,6 @@ def main(arguments):
 
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--get_music', action='store_true', default=False)
     args = parser.parse_args()

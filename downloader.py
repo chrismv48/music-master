@@ -68,7 +68,6 @@ def run():
         except youtube_dl.utils.DownloadError as e:
             LOGGER.warning('youtube-dl encountered an error: {}' .format(e.message))
             continue
-        # TODO: might need to create a holding directory so watchdog doesn't overwrite the below
         saved_track = SavedTrack()
         saved_track.update_from_dict(queued_track.as_dict())
         saved_track.path = final_track_path
